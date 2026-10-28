@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pour toi ♥</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root { --nuit:#1c0712; --vin:#3a0b22; --rouge:#ff1744; --rose:#ff4f9a; --rose-clair:#ffb3d1; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: radial-gradient(ellipse at 50% 40%, var(--vin), var(--nuit) 70%);
+    color: var(--rose-clair);
+    font-family: 'Quicksand', system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; text-align: center;
+  }
+  main { padding: 1.5rem; position: relative; z-index: 2; }
+
+  /* Cœur qui bat */
+  .coeur {
+    width: min(55vw, 240px); cursor: pointer; background: none; border: 0;
+    animation: bat 1.4s ease-in-out infinite;
+    filter: drop-shadow(0 0 22px rgba(255, 23, 68, .55));
+    transition: transform .6s, opacity .6s;
+  }
+  .coeur:focus-visible { outline: 3px solid var(--rose-clair); outline-offset: 8px; border-radius: 50%; }
+  .coeur svg { width: 100%; display: block; }
+  @keyframes bat {
+    0%, 100% { transform: scale(1); }
+    14% { transform: scale(1.12); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.08); }
+    70% { transform: scale(1); }
+  }
+  .invite { margin-top: 1.4rem; font-size: 1.15rem; letter-spacing: .04em; opacity: .85; }
+
+  /* Message révélé */
+  .message { display: none; }
+  .ouvert .coeur, .ouvert .invite { display: none; }
+  .ouvert .message { display: block; animation: apparait 1.4s ease both; }
+  @keyframes apparait { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+
+
+  .mot-coeur { display: block; margin: 0 auto; max-width: 100%; cursor: grab; touch-action: pan-y; }
+  .compteur { margin-top: 1.2rem; }
+  .compteur p { font-size: 1rem; opacity: .8; margin-bottom: .6rem; }
+  .compteur strong { display: block; font-size: clamp(1.1rem, 4.6vw, 1.6rem); font-weight: 500; color: #fff; }
+
+  /* Cœurs qui montent */
+  .flotte { position: fixed; bottom: -40px; pointer-events: none; z-index: 1; color: var(--rose); opacity: 0; animation: monte linear forwards; }
+  @keyframes monte { 10% { opacity: .8; } to { transform: translateY(-110vh) rotate(25deg); opacity: 0; } }
+
+  .son {
+    position: fixed; top: 1rem; right: 1rem; z-index: 3; display: none;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,179,209,.35);
+    color: var(--rose-clair); font: inherit; padding: .45rem .8rem; border-radius: 999px; cursor: pointer;
+  }
+  .ouvert .son { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .coeur, .mot-coeur { animation: none; }
+    .flotte { display: none; }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<main id="page">
+  <button class="coeur" id="ouvrir" aria-label="Ouvre-moi">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff1744"/><stop offset="1" stop-color="#ff4f9a"/></linearGradient></defs>
+      <path fill="url(#g)" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    </svg>
+  </button>
+  <p class="invite">Ouvre-moi</p>
+
+  <section class="message">
+    <canvas class="mot-coeur" id="mot" role="img" aria-label="I love you"></canvas>
+    <div class="compteur">
+      <p>Ensemble depuis</p>
+      <strong id="temps">…</strong>
+    </div>
+  </section>
+</main>
+
+<button class="son" id="son" aria-label="Couper ou remettre la musique">♪ Musique</button>
+<audio id="musique" src="musique.mp3" loop preload="auto"></audio>
+
+<script>
+  // ✏️ À MODIFIER : la date de votre début (année, mois 1-12, jour, heure, minute)
+  const DEBUT = new Date(2026, 9 - 1, 19, 0, 0);
+
+  const page = document.getElementById('page');
+  const musique = document.getElementById('musique');
+  let flotteur;
+
+  function ecart(de, a) {
+    let mois = (a.getFullYear() - de.getFullYear()) * 12 + a.getMonth() - de.getMonth();
+    let ancre = new Date(de); ancre.setMonth(de.getMonth() + mois);
+    if (ancre > a) { mois--; ancre = new Date(de); ancre.setMonth(de.getMonth() + mois); }
+    const reste = a - ancre;
+    return {
+      ans: Math.floor(mois / 12), mois: mois % 12,
+      jours: Math.floor(reste / 864e5), h: Math.floor(reste % 864e5 / 36e5),
+      min: Math.floor(reste % 36e5 / 6e4), s: Math.floor(reste % 6e4 / 1e3)
+    };
+  }
+  const pl = (n, mot) => n + ' ' + mot + (n > 1 && mot !== 'mois' ? 's' : '');
+
+  function majCompteur() {
+    const e = ecart(DEBUT, new Date());
+    const parties = [];
+    if (e.ans) parties.push(pl(e.ans, 'an'));
+    if (e.mois) parties.push(pl(e.mois, 'mois'));
+    parties.push(pl(e.jours, 'jour'), pl(e.h, 'heure'), pl(e.min, 'minute'), pl(e.s, 'seconde'));
+    document.getElementById('temps').textContent = parties.join(', ');
+  }
+
+  function coeurFlottant() {
+    const c = document.createElement('span');
+    c.className = 'flotte'; c.textContent = '♥';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.fontSize = (14 + Math.random() * 26) + 'px';
+    c.style.animationDuration = (6 + Math.random() * 6) + 's';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 12500);
+  }
+
+  // Cœur 3D formé uniquement par la phrase « I love you » (mots en 3D qui tournent)
+  let scene3d = null;
+  async function coeur3D() {
+    if (scene3d) return;
+    const cv = document.getElementById('mot');
+    const w0 = Math.min(window.innerWidth * 0.92, 520);
+    const renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(w0, w0);
+    const scene = new THREE.Scene();
+    const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+    cam.position.set(0, 0, 46);
+
+    // Contour du cœur (courbe paramétrique), centré
+    const S = 0.78, contour = [];
+    for (let i = 0; i < 240; i++) {
+      const a = i / 240 * Math.PI * 2;
+      contour.push([S * 16 * Math.pow(Math.sin(a), 3),
+        S * (13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a) + 2.5)]);
+    }
+
+    // Texture d'un mot « I love you » (fine, minimaliste)
+    try { await document.fonts.load('500 80px Quicksand'); } catch (e) {}
+    const tc = document.createElement('canvas'); tc.width = 512; tc.height = 128;
+    const t = tc.getContext('2d');
+    t.font = '500 82px Quicksand, sans-serif'; t.fillStyle = '#fff';
+    t.textAlign = 'center'; t.textBaseline = 'middle';
+    t.fillText('I love you', 256, 68);
+    const tex = new THREE.CanvasTexture(tc); tex.anisotropy = 4;
+    const UW = 6.4, vw = t.measureText('I love you').width / 512 * UW;
+
+    // Anneaux de mots emboîtés : un seul cœur fermé (face avant, côtés, face arrière)
+    const groupe = new THREE.Group(); scene.add(groupe);
+    const mots = [];
+    const bas = new THREE.Color('#ff1744'), haut = new THREE.Color('#ff8fbd');
+    const Z = 6.5, gap = 1.4;
+    const cum = [0];
+    for (let i = 1; i <= contour.length; i++) {
+      const a = contour[i - 1], b = contour[i % contour.length];
+      cum.push(cum[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1]));
+    }
+    const P = cum[contour.length];
+    function pointSur(s) {              // point du contour à l'abscisse curviligne s
+      s = ((s % P) + P) % P;
+      let i = 0; while (cum[i + 1] < s) i++;
+      const f = (s - cum[i]) / (cum[i + 1] - cum[i]), a = contour[i], b = contour[(i + 1) % contour.length];
+      return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+    }
+    function anneau(sc, z, decal) {
+      const n = Math.floor(P * sc / (vw + gap));
+      for (let j = 0; j < n; j++) {
+        const [px, py] = pointSur((j + decal) * P / n);
+        const k2 = Math.min(Math.max((py * sc + 11.3) / 22.6, 0), 1);
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: bas.clone().lerp(haut, k2), transparent: true, depthWrite: false }));
+        sp.scale.set(UW, UW / 4, 1); sp.position.set(px * sc, py * sc, z);
+        groupe.add(sp); mots.push(sp);
+      }
+    }
+    anneau(1, 0, 0.5);                  // contour du cœur (les côtés)
+    [0.74, 0.48].forEach((sc, i) => {   // anneaux plus petits vers l'avant et vers l'arrière
+      const z = Z * Math.sqrt(1 - sc * sc);
+      anneau(sc, z, 0.25 * i);
+      anneau(sc, -z, 0.25 * i + 0.5);
+    });
+
+    // Rotation automatique + glisser pour tourner le cœur
+    let ry = 0.5, bouge = false, dernier = 0;
+    cv.addEventListener('pointerdown', e => { bouge = true; dernier = e.clientX; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', e => { if (bouge) { ry += (e.clientX - dernier) * 0.01; dernier = e.clientX; } });
+    const fin = () => { bouge = false; };
+    cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin);
+    const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const horloge = new THREE.Clock(), v = new THREE.Vector3();
+    const g = n => Math.exp(-n * n);
+    (function boucle() {
+      const p = (horloge.getElapsedTime() % 1.4) / 1.4;
+      if (!bouge && !reduit) ry += 0.007;
+      groupe.scale.setScalar(reduit ? 1 : 1 + 0.06 * g((p - 0.1) / 0.05) + 0.04 * g((p - 0.3) / 0.06));
+      groupe.rotation.set(0.08, ry, 0);
+      groupe.updateMatrixWorld(true);
+      for (const sp of mots) {            // les mots du fond sont plus pâles : effet de profondeur
+        sp.getWorldPosition(v);
+        sp.material.opacity = 0.18 + 0.82 * Math.min(Math.max((v.z + 7) / 14, 0), 1);
+      }
+      renderer.render(scene, cam);
+      requestAnimationFrame(boucle);
+    })();
+    scene3d = { renderer };
+  }
+  function redim() {
+    if (!scene3d) return;
+    const w = Math.min(window.innerWidth * 0.92, 520);
+    scene3d.renderer.setSize(w, w);
+  }
+
+  window.addEventListener('resize', () => { redim(); });
+
+  document.getElementById('ouvrir').addEventListener('click', () => {
+    page.classList.add('ouvert');
+    document.body.classList.add('ouvert');
+    coeur3D();
+    majCompteur(); setInterval(majCompteur, 1000);
+    musique.volume = 0.6;
+    musique.play().catch(() => {});
+    flotteur = setInterval(coeurFlottant, 500);
+  });
+
+  document.getElementById('son').addEventListener('click', () => {
+    musique.paused ? musique.play() : musique.pause();
+  });
+</script>
+</body>
+</html>
