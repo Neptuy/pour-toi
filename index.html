@@ -53,12 +53,36 @@
   .flotte { position: fixed; bottom: -40px; pointer-events: none; z-index: 1; color: var(--rose); opacity: 0; animation: monte linear forwards; }
   @keyframes monte { 10% { opacity: .8; } to { transform: translateY(-110vh) rotate(25deg); opacity: 0; } }
 
-  .son {
+  .son-zone {
     position: fixed; top: 1rem; right: 1rem; z-index: 6; display: none;
+    flex-direction: column; align-items: center; gap: .5rem; padding-bottom: .5rem;
+  }
+  .ouvert .son-zone { display: flex; }
+  .son {
     background: rgba(255,255,255,.08); border: 1px solid rgba(255,179,209,.35);
     color: var(--rose-clair); font: inherit; padding: .45rem .8rem; border-radius: 999px; cursor: pointer;
   }
-  .ouvert .son { display: block; }
+  .jauge {
+    display: flex; align-items: center; gap: .5rem;
+    background: rgba(20,0,15,.55); border: 1px solid rgba(255,179,209,.35); border-radius: 999px;
+    padding: .4rem .7rem; color: var(--rose-clair); font-size: .8rem;
+    opacity: 0; transform: translateY(-6px); pointer-events: none;
+    transition: opacity .25s, transform .25s; backdrop-filter: blur(6px);
+  }
+  .son-zone:hover .jauge, .son-zone:focus-within .jauge {
+    opacity: 1; transform: none; pointer-events: auto;
+  }
+  .jauge input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 110px; height: 6px; border-radius: 999px; cursor: pointer;
+    background: linear-gradient(90deg, #ff1744, #ff4f9a) 0 / var(--niveau, 60%) 100% no-repeat, rgba(255,255,255,.18);
+  }
+  .jauge input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid #ff4f9a;
+  }
+  .jauge input[type=range]::-moz-range-thumb {
+    width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #ff4f9a;
+  }
+  .jauge .pct { min-width: 2.6em; text-align: right; }
 
   @media (prefers-reduced-motion: reduce) {
     .coeur, .mot-coeur { animation: none; }
@@ -138,7 +162,14 @@
   </div>
 </div>
 
-<button class="son" id="son" aria-label="Couper ou remettre la musique">♪ Musique</button>
+<div class="son-zone">
+  <button class="son" id="son" aria-label="Couper ou remettre la musique">♪ Musique</button>
+  <div class="jauge">
+    <span aria-hidden="true">🔈</span>
+    <input type="range" id="volume" min="0" max="100" value="60" aria-label="Volume de la musique">
+    <span class="pct" id="volumePct">60%</span>
+  </div>
+</div>
 <audio id="musique" src="musique.mp3" loop preload="auto"></audio>
 
 <script>
@@ -583,13 +614,22 @@
     document.body.classList.add('ouvert');
     coeur3D();
     majCompteur(); setInterval(majCompteur, 1000);
-    musique.volume = 0.6;
+    musique.volume = document.getElementById('volume').value / 100;
     musique.play().catch(() => {});
     flotteur = setInterval(coeurFlottant, 500);
   });
 
   document.getElementById('son').addEventListener('click', () => {
     musique.paused ? musique.play() : musique.pause();
+  });
+
+  const volume = document.getElementById('volume');
+  const volumePct = document.getElementById('volumePct');
+  volume.addEventListener('input', () => {
+    const v = volume.value;
+    musique.volume = v / 100;
+    volume.style.setProperty('--niveau', v + '%');
+    volumePct.textContent = v + '%';
   });
 
 </script>
