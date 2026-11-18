@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pour toi ♥</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root { --nuit:#1c0712; --vin:#3a0b22; --rouge:#ff1744; --rose:#ff4f9a; --rose-clair:#ffb3d1; }
   * { box-sizing: border-box; margin: 0; }
@@ -15,9 +15,9 @@
     color: var(--rose-clair);
     font-family: 'Quicksand', system-ui, sans-serif;
     display: flex; align-items: center; justify-content: center;
-    overflow: hidden; text-align: center;
+    overflow-x: hidden; text-align: center;
   }
-  main { padding: 1.5rem; position: relative; z-index: 2; }
+  main { padding: 1.5rem; position: relative; z-index: 2; margin: auto; }
 
   /* Cœur qui bat */
   .coeur {
@@ -54,7 +54,7 @@
   @keyframes monte { 10% { opacity: .8; } to { transform: translateY(-110vh) rotate(25deg); opacity: 0; } }
 
   .son {
-    position: fixed; top: 1rem; right: 1rem; z-index: 3; display: none;
+    position: fixed; top: 1rem; right: 1rem; z-index: 6; display: none;
     background: rgba(255,255,255,.08); border: 1px solid rgba(255,179,209,.35);
     color: var(--rose-clair); font: inherit; padding: .45rem .8rem; border-radius: 999px; cursor: pointer;
   }
@@ -64,10 +64,42 @@
     .coeur, .mot-coeur { animation: none; }
     .flotte { display: none; }
   }
+  .scene { display: grid; justify-items: center; }
+  .scene canvas { grid-area: 1 / 1; transition: opacity .6s; }
+  .scene .cache { opacity: 0; pointer-events: none; }
+  .bascule { display: flex; justify-content: center; gap: .5rem; margin-top: .8rem; flex-wrap: wrap; }
+  .bascule button { font: inherit; font-size: .9rem; color: var(--rose-clair); background: rgba(255,79,154,.1); border: 1px solid rgba(255,179,209,.4); border-radius: 999px; padding: .5rem .9rem; cursor: pointer; }
+  .bascule button.actif { color: #fff; background: linear-gradient(90deg, #ff1744, #ff4f9a); border-color: transparent; }
+  .scene { position: relative; }
+  #cadeau { cursor: pointer; }
+  .cadeau-ui { position: absolute; inset: 0; pointer-events: none; transition: opacity .6s; }
+  .cadeau-titre { position: absolute; top: 2%; left: 0; right: 0; display: flex; align-items: center; justify-content: center; gap: .18em;
+    font-family: 'Dancing Script', cursive; font-weight: 700; font-size: clamp(2.1rem, 9.5vw, 3.5rem); line-height: 1.15; padding: 0 .2em;
+    opacity: 0; transform: translateY(14px) scale(.9); filter: drop-shadow(0 0 14px rgba(167,139,250,.55)); }
+  .cadeau-titre .tx { background: linear-gradient(90deg, #c4b5fd, #f5f3ff 50%, #fde68a); -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; padding-right: .1em; }
+  .coeur-titre { width: .62em; height: .62em; flex: none; animation: bat 1.4s ease-in-out infinite; }
+  .carte-vue { position: fixed; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; padding: 1.2rem; text-align: center;
+    background: rgba(7,3,15,.8); }
+  .carte-vue[hidden] { display: none; }
+  .panneau { position: relative; width: 100%; max-width: 420px; max-height: 86vh; overflow: auto; padding: 1.6rem 1.3rem; border-radius: 20px;
+    background: linear-gradient(160deg, #2a1155, #14082b); border: 1px solid rgba(196,181,253,.45); box-shadow: 0 0 40px rgba(139,92,246,.35); animation: apparait .5s ease both; }
+  .panneau .icone { font-size: 2.6rem; }
+  .panneau h3 { font-family: 'Dancing Script', cursive; font-weight: 700; font-size: 2.1rem; color: #e9d5ff; margin: .1rem 0 .6rem; }
+  .panneau p { white-space: pre-line; line-height: 1.6; color: #f5f3ff; }
+  .panneau img { width: 100%; border-radius: 12px; margin: .3rem 0 .8rem; display: block; }
+  .fermer { position: absolute; top: .5rem; right: .8rem; background: none; border: 0; color: #ddd6fe; font-size: 1.4rem; cursor: pointer; }
+  .cadeau-aide { position: absolute; bottom: 2%; left: 0; right: 0; font-size: 1rem; letter-spacing: .04em; color: var(--rose-clair); opacity: .85; }
+  .fond-violet { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1s;
+    background: radial-gradient(ellipse at 50% 38%, #1d0b3d, #07030f 78%); }
+  .fond-violet.on { opacity: 1; }
+  body.violet .flotte { display: none; }
+  html, body { touch-action: pan-y pinch-zoom; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
+<div class="fond-violet" id="fond"></div>
 <main id="page">
   <button class="coeur" id="ouvrir" aria-label="Ouvre-moi">
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -78,13 +110,33 @@
   <p class="invite">Ouvre-moi</p>
 
   <section class="message">
-    <canvas class="mot-coeur" id="mot" role="img" aria-label="I love you"></canvas>
+    <div class="scene">
+      <canvas class="mot-coeur" id="mot" role="img" aria-label="I love you"></canvas>
+      <canvas class="mot-coeur cache" id="langues" role="img" aria-label="Je t’aime dans plusieurs langues"></canvas>
+      <canvas class="mot-coeur cache" id="cadeau" role="img" aria-label="Un cadeau pour nos deux mois"></canvas>
+      <div class="cadeau-ui cache" id="cadeauUi"><div class="cadeau-titre" id="cadeauTitre"></div><div class="cadeau-aide" id="cadeauAide">Touche le cadeau 🎁</div></div>
+    </div>
+    <div class="bascule">
+      <button class="actif" data-v="mot">💖 Cœur 3D</button>
+      <button data-v="langues">🌍 Je t’aime en 20 langues</button>
+      <button data-v="cadeau">🎁 Cadeau 2 mois</button>
+    </div>
     <div class="compteur">
       <p>Ensemble depuis</p>
       <strong id="temps">…</strong>
     </div>
   </section>
 </main>
+
+<div class="carte-vue" id="carteVue" hidden>
+  <div class="panneau">
+    <button class="fermer" id="carteFermer" aria-label="Fermer">✕</button>
+    <div class="icone" id="cvIcone"></div>
+    <h3 id="cvTitre"></h3>
+    <img id="cvPhoto" alt="" hidden>
+    <p id="cvTexte"></p>
+  </div>
+</div>
 
 <button class="son" id="son" aria-label="Couper ou remettre la musique">♪ Musique</button>
 <audio id="musique" src="musique.mp3" loop preload="auto"></audio>
@@ -134,7 +186,7 @@
   async function coeur3D() {
     if (scene3d) return;
     const cv = document.getElementById('mot');
-    const w0 = Math.min(window.innerWidth * 0.92, 520);
+    const w0 = Math.min(window.innerWidth * 0.92, window.innerHeight * 0.5, 520);
     const renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(w0, w0);
@@ -218,10 +270,310 @@
     })();
     scene3d = { renderer };
   }
+  // Cœur « je t’aime » en plusieurs langues (style néon) + bouton pour basculer entre les deux cœurs
+  const PHRASES = ['I love you', 'Seni seviyorum', 'Te amo', 'Je t’aime', 'Ich liebe dich', 'Ti amo', 'Eu te amo', '사랑해', '愛してる', '我爱你',
+    'मैं तुमसे प्यार करता हूँ', 'Я тебя люблю', 'Σ’ αγαπώ', 'Ik hou van jou', 'Jag älskar dig', 'ฉันรักเธอ', 'Anh yêu em', 'Aku cinta kamu', 'Kocham cię', 'Я тебе кохаю'];
+  const NEONS = ['#ff2d2d', '#ff3b5c', '#ff1744', '#ff4f9a', '#ff6b6b'];
+  let lg = null, lgBoucle = false, vueCoeur = 'mot';
+
+  async function construireLangues() {
+    const cv = document.getElementById('langues');
+    const W = Math.min(window.innerWidth * 0.92, window.innerHeight * 0.5, 520), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = W * dpr; cv.height = W * dpr; cv.style.width = cv.style.height = W + 'px';
+    const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    try { await document.fonts.load('700 20px Quicksand'); } catch (e) {}
+    const s = W * 0.93 / 32, cx = W / 2, poly = [];
+    for (let i = 0; i < 200; i++) {
+      const a = i / 200 * Math.PI * 2;
+      poly.push([cx + s * 16 * Math.pow(Math.sin(a), 3),
+        cx - s * (13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a) + 2.5)]);
+    }
+    const dansCoeur = (x, y) => {
+      let r = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const [xi, yi] = poly[i], [xj, yj] = poly[j];
+        if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) r = !r;
+      }
+      return r;
+    };
+    const distBord = (x, y) => { let d = 1e9; for (const [px, py] of poly) d = Math.min(d, Math.hypot(px - x, py - y)); return d; };
+    // Deux couches de mots (avant / arrière) reliées sur les bords : un seul cœur en volume
+    const Z = W * 0.2, R = 7 * s, mots = [];
+    for (const cote of [1, -1]) {
+      const boites = [];
+      for (const taille of [0.045, 0.038, 0.032, 0.027, 0.023, 0.019, 0.016].map(k => W * k)) {
+        const police = `700 ${taille}px Quicksand, "Noto Sans", "Segoe UI", sans-serif`;
+        ctx.font = police;
+        for (let essai = 0; essai < 1500; essai++) {
+          const t = PHRASES[Math.floor(Math.random() * PHRASES.length)];
+          const w = ctx.measureText(t).width + 4, h = taille * 1.2;
+          const x = cx + (Math.random() - 0.5) * 32 * s, y = cx + (Math.random() - 0.5) * 30 * s;
+          if (![[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([a, b]) => dansCoeur(x + a * w / 2, y + b * h / 2))) continue;
+          if (boites.some(b => Math.abs(b.x - x) < (b.w + w) / 2 && Math.abs(b.y - y) < (b.h + h) / 2)) continue;
+          boites.push({ x, y, w, h });
+          // Le mot est dessiné une seule fois avec son halo néon (rapide à afficher ensuite)
+          const couleur = NEONS[Math.floor(Math.random() * NEONS.length)], iw = w + 20, ih = h + 20;
+          const img = document.createElement('canvas'); img.width = iw * dpr; img.height = ih * dpr;
+          const c = img.getContext('2d'); c.scale(dpr, dpr);
+          c.font = police; c.textAlign = 'center'; c.textBaseline = 'middle';
+          c.fillStyle = couleur; c.shadowColor = couleur; c.shadowBlur = 8; c.fillText(t, iw / 2, ih / 2);
+          const e = Math.min(distBord(x, y) / R, 1);
+          mots.push({ img, iw, ih, x: x - cx, y: y - cx, z: cote * Z * Math.sqrt(2 * e - e * e), phase: Math.random() * 6.28,
+            delai: Math.hypot(x - cx, y - cx) / (16 * s) * 1.6 + Math.random() * 0.5 });   // se forme depuis le centre
+        }
+      }
+    }
+    lg = { ctx, W, mots, Z, debut: performance.now(), prec: 0, ang: 0, glisse: false, pointeur: null,
+      reduit: matchMedia('(prefers-reduced-motion: reduce)').matches };
+    // Glisser pour faire tourner le cœur à la main
+    let dernier = 0;
+    cv.onpointerdown = e => { if (lg) { lg.glisse = true; dernier = e.clientX; cv.setPointerCapture(e.pointerId); } };
+    cv.onpointermove = e => {
+      if (!lg) return;
+      if (lg.glisse) { lg.ang += (e.clientX - dernier) * 0.01; dernier = e.clientX; }
+      else { const r = cv.getBoundingClientRect(); lg.pointeur = [e.clientX - r.left, e.clientY - r.top]; }
+    };
+    cv.onpointerup = cv.onpointercancel = () => { if (lg) lg.glisse = false; };
+    cv.onpointerleave = () => { if (lg) lg.pointeur = null; };
+  }
+
+  function boucleLangues() {
+    if (!lg || vueCoeur !== 'langues') { lgBoucle = false; return; }
+    const { ctx, W, mots, Z } = lg, now = performance.now(), t = (now - lg.debut) / 1000;
+    const dt = Math.min((now - (lg.prec || now)) / 1000, 0.05); lg.prec = now;
+    if (!lg.glisse && !lg.reduit && t > 2.5) lg.ang += dt * 0.5;       // rotation automatique après la formation
+    const co = Math.cos(lg.ang), si = Math.sin(lg.ang), f = W * 2.4;
+    const p = (t % 1.4) / 1.4, g = n => Math.exp(-n * n);
+    const bat = t > 3 && !lg.reduit ? 1 + 0.025 * g((p - 0.1) / 0.05) + 0.018 * g((p - 0.3) / 0.06) : 1;
+    const pts = mots.map(m => ({ m, x: m.x * co + m.z * si, z: -m.x * si + m.z * co }));
+    pts.sort((a, b) => a.z - b.z);                                      // du fond vers l’avant
+    ctx.clearRect(0, 0, W, W);
+    for (const { m, x, z } of pts) {
+      const k = Math.min(Math.max((t - m.delai) / 0.8, 0), 1);
+      if (k <= 0) continue;
+      const e = 1 - Math.pow(1 - k, 3), ps = f / (f - z) * bat;
+      const prof = Math.min(Math.max((z + Z) / (2 * Z), 0), 1);         // 0 = au fond, 1 = devant
+      let a = e * (0.12 + 0.88 * prof * prof) * (0.85 + 0.15 * Math.sin(t * 2 + m.phase)), sc = ps * (0.6 + 0.4 * e);
+      const X = W / 2 + x * ps, Y = W / 2 + m.y * ps + 18 * (1 - e);
+      if (lg.pointeur && prof > 0.5 && Math.hypot(lg.pointeur[0] - X, lg.pointeur[1] - Y) < 60) { a = 1; sc *= 1.2; }
+      ctx.globalAlpha = Math.min(a, 1);
+      ctx.drawImage(m.img, X - m.iw * sc / 2, Y - m.ih * sc / 2, m.iw * sc, m.ih * sc);
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(boucleLangues);
+  }
+
+  async function montrerLangues() {
+    if (!lg) await construireLangues();
+    lg.debut = lg.reduit ? performance.now() - 1e4 : performance.now();
+    if (!lgBoucle) { lgBoucle = true; boucleLangues(); }
+  }
+
+  // Cadeau des deux mois : une boîte fermée ; au toucher elle s’ouvre (confettis en cœur, message au-dessus) et on peut regarder dedans :
+  // des cartes en sortent, on les touche pour les lire.
+  const TITRE_CADEAU = 'Joyeux deux mois';      // ✏️ à personnaliser
+
+  // ✏️ CONTENU DE LA BOÎTE : change les textes (garde les guillemets, les virgules et les accolades). Tu peux ajouter ou retirer des cartes.
+  // Pour une photo : ajoute l’image dans le dépôt GitHub (à côté de index.html) et mets son nom exact.
+  const CONTENU_BOITE = [
+    { icone: '💌', nom: 'Une lettre', titre: 'Pour toi', texte: 'Deux mois déjà, et chaque jour avec toi compte pour moi.\nMerci d’être là. Je t’aime.' },
+    { icone: '📸', nom: 'Un souvenir', titre: 'Notre début', texte: 'Le 19 septembre 2026, le jour où tout a commencé.', photo: 'souvenir1.jpg' },
+    { icone: '💆', nom: 'Un bon cadeau', titre: 'Bon pour un massage', texte: 'Valable une fois : 30 minutes de massage, rien que pour toi.\nÀ échanger quand tu veux.' }
+  ];
+  let cad = null, cadBoucle = false;
+
+  function texCarte(icone, nom) {
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 320;
+    const x = cv.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 320);
+    g.addColorStop(0, '#f5f3ff'); g.addColorStop(1, '#ddd6fe'); x.fillStyle = g; x.fillRect(0, 0, 256, 320);
+    x.strokeStyle = '#fcd34d'; x.lineWidth = 10; x.strokeRect(5, 5, 246, 310);
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = '110px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif'; x.fillText(icone, 128, 140);
+    x.fillStyle = '#5b21b6'; x.font = '700 30px Quicksand, sans-serif'; x.fillText(nom, 128, 260);
+    return new THREE.CanvasTexture(cv);
+  }
+  function texCoeur() {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const x = cv.getContext('2d'); x.fillStyle = '#fff'; x.beginPath(); x.moveTo(32, 56);
+    x.bezierCurveTo(8, 38, 4, 22, 14, 13); x.bezierCurveTo(22, 6, 31, 10, 32, 18);
+    x.bezierCurveTo(33, 10, 42, 6, 50, 13); x.bezierCurveTo(60, 22, 56, 38, 32, 56); x.fill();
+    return new THREE.CanvasTexture(cv);
+  }
+
+  function construireCadeau() {
+    const cv = document.getElementById('cadeau');
+    const w0 = Math.min(window.innerWidth * 0.92, window.innerHeight * 0.5, 520);
+    const renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(w0, w0);
+    const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+    cam.position.set(0, 3, 16); cam.lookAt(0, -0.2, 0);
+
+    const mat = (c, r, m) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m });
+    const violet = mat('#7c3aed', 0.45, 0.1), violetLid = mat('#8b5cf6', 0.4, 0.1), or = mat('#fcd34d', 0.35, 0.4), orLid = mat('#fcd34d', 0.35, 0.4);
+    violetLid.transparent = orLid.transparent = true;
+    const ajoute = (parent, geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); parent.add(o); return o; };
+    const boite = new THREE.Group(); boite.position.y = -2; scene.add(boite);
+    // Boîte creuse : fond + 4 parois (on peut regarder dedans quand le couvercle est ouvert)
+    ajoute(boite, new THREE.BoxGeometry(3.6, 0.2, 3.6), violet, 0, -1.2, 0);
+    ajoute(boite, new THREE.BoxGeometry(4, 2.6, 0.2), violet, 0, 0, 1.9);
+    ajoute(boite, new THREE.BoxGeometry(4, 2.6, 0.2), violet, 0, 0, -1.9);
+    ajoute(boite, new THREE.BoxGeometry(0.2, 2.6, 3.6), violet, 1.9, 0, 0);
+    ajoute(boite, new THREE.BoxGeometry(0.2, 2.6, 3.6), violet, -1.9, 0, 0);
+    ajoute(boite, new THREE.BoxGeometry(0.7, 2.62, 0.05), or, 0, 0, 2.0);             // ruban doré à l’extérieur
+    ajoute(boite, new THREE.BoxGeometry(0.7, 2.62, 0.05), or, 0, 0, -2.0);
+    ajoute(boite, new THREE.BoxGeometry(0.05, 2.62, 0.7), or, 2.0, 0, 0);
+    ajoute(boite, new THREE.BoxGeometry(0.05, 2.62, 0.7), or, -2.0, 0, 0);
+    // Couvercle articulé à l’arrière : il se rabat comme une vraie boîte
+    const couvercle = new THREE.Group(); couvercle.position.set(0, 1.3, -2.2); boite.add(couvercle);
+    ajoute(couvercle, new THREE.BoxGeometry(4.4, 0.8, 4.4), violetLid, 0, 0.4, 2.2);
+    ajoute(couvercle, new THREE.BoxGeometry(0.7, 0.82, 4.42), orLid, 0, 0.4, 2.2);
+    ajoute(couvercle, new THREE.BoxGeometry(4.42, 0.82, 0.7), orLid, 0, 0.4, 2.2);
+    ajoute(couvercle, new THREE.TorusGeometry(0.55, 0.17, 12, 28), orLid, -0.55, 1.05, 2.2).rotation.z = 0.6;   // nœud
+    ajoute(couvercle, new THREE.TorusGeometry(0.55, 0.17, 12, 28), orLid, 0.55, 1.05, 2.2).rotation.z = -0.6;
+    ajoute(couvercle, new THREE.SphereGeometry(0.28, 16, 16), orLid, 0, 0.95, 2.2);
+
+    scene.add(new THREE.HemisphereLight(0xeee8ff, 0x2a1050, 1.0));
+    const l1 = new THREE.DirectionalLight(0xffffff, 1.0); l1.position.set(8, 12, 10); scene.add(l1);
+    const l2 = new THREE.PointLight(0xc4b5fd, 0, 30); l2.position.set(0, 0.6, 0); boite.add(l2);
+
+    // Cartes dans la boîte : elles sortent quand la boîte s’ouvre, on les touche pour les lire
+    const n = CONTENU_BOITE.length, esp = Math.min(1.05, 2.6 / Math.max(1, n - 1));
+    const cartes = CONTENU_BOITE.map((c, i) => {
+      const k = i - (n - 1) / 2;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.9), new THREE.MeshBasicMaterial({ map: texCarte(c.icone || '🎁', c.nom || ''), side: THREE.DoubleSide }));
+      m.position.set(k * esp, -0.5, -0.3 + 0.25 * (1 - Math.min(1, Math.abs(k)))); m.rotation.set(-0.12, 0, -k * 0.18);
+      m.visible = false; boite.add(m); return m;
+    });
+
+    // Confettis : petits points + cœurs
+    const faireConf = (nb, taille, couleurs, tex) => {
+      const pos = new Float32Array(nb * 3), col = new Float32Array(nb * 3), vel = [], pal = couleurs.map(c => new THREE.Color(c));
+      for (let i = 0; i < nb; i++) { const c = pal[i % pal.length]; col.set([c.r, c.g, c.b], i * 3); vel.push([0, 0, 0]); }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      const pts = new THREE.Points(g, new THREE.PointsMaterial({ size: taille, vertexColors: true, transparent: true, depthWrite: false, map: tex || null, alphaTest: tex ? 0.05 : 0 }));
+      pts.frustumCulled = false; pts.visible = false; scene.add(pts);
+      return { pts, pos, vel, n: nb };
+    };
+    const confs = [faireConf(110, 0.5, ['#ddd6fe', '#a78bfa', '#fcd34d', '#ffffff'], null),
+                   faireConf(80, 1.7, ['#f9a8d4', '#f472b6', '#c4b5fd', '#a78bfa', '#ffffff', '#fcd34d'], texCoeur())];
+
+    cad = { renderer, scene, cam, boite, couvercle, lidMats: [violetLid, orLid], l2, cartes, confs, rayon: new THREE.Raycaster(), confVie: 99, t: 0, cible: 0, ry: 0.35, glisse: false, prec: 0,
+      titre: document.getElementById('cadeauTitre'), aide: document.getElementById('cadeauAide'),
+      reduit: matchMedia('(prefers-reduced-motion: reduce)').matches };
+    cad.titre.innerHTML = '<span class="tx"></span><svg class="coeur-titre" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gt" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="#f472b6"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>' +
+      '<path fill="url(#gt)" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+    cad.titre.firstChild.textContent = TITRE_CADEAU;
+
+    // Toucher (sans bouger) = ouvrir, ou lire une carte ; glisser = faire tourner la boîte
+    let x0 = 0, y0 = 0, dernier = 0, bouge = false;
+    cv.onpointerdown = e => { cad.glisse = true; x0 = e.clientX; y0 = e.clientY; dernier = e.clientX; bouge = false; cv.setPointerCapture(e.pointerId); };
+    cv.onpointermove = e => {
+      if (!cad.glisse) return;
+      if (Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0) > 8) bouge = true;
+      cad.ry += (e.clientX - dernier) * 0.01; dernier = e.clientX;
+    };
+    cv.onpointerup = e => { if (!cad.glisse) return; cad.glisse = false; if (!bouge) toucherCadeau(e, cv); };
+    cv.onpointercancel = () => { cad.glisse = false; };
+  }
+
+  function toucherCadeau(e, cv) {
+    if (!cad.cible) { basculerCadeau(); return; }                           // fermée : un toucher l’ouvre
+    if (cad.t < 0.9) return;                                                // pendant l’ouverture
+    const r = cv.getBoundingClientRect();
+    cad.cam.updateMatrixWorld(); cad.scene.updateMatrixWorld(true);
+    cad.rayon.setFromCamera({ x: (e.clientX - r.left) / r.width * 2 - 1, y: -((e.clientY - r.top) / r.height) * 2 + 1 }, cad.cam);
+    const carte = cad.rayon.intersectObjects(cad.cartes.filter(c => c.visible))[0];
+    if (carte) { ouvrirCarte(cad.cartes.indexOf(carte.object)); return; }
+    if (cad.rayon.intersectObject(cad.boite, true).length) basculerCadeau();   // toucher la boîte vide = la refermer
+  }
+
+  function ouvrirCarte(i) {
+    const c = CONTENU_BOITE[i], ph = document.getElementById('cvPhoto');
+    document.getElementById('cvIcone').textContent = c.icone || '';
+    document.getElementById('cvTitre').textContent = c.titre || c.nom || '';
+    document.getElementById('cvTexte').textContent = c.texte || '';
+    if (c.photo) { ph.onerror = () => { ph.hidden = true; }; ph.src = c.photo; ph.hidden = false; } else ph.hidden = true;
+    document.getElementById('carteVue').hidden = false;
+  }
+  const fermerCarte = () => { document.getElementById('carteVue').hidden = true; };
+  document.getElementById('carteFermer').onclick = fermerCarte;
+  document.getElementById('carteVue').onclick = e => { if (e.target.id === 'carteVue') fermerCarte(); };
+
+  function basculerCadeau() {
+    cad.cible = cad.cible ? 0 : 1;
+    cad.aide.textContent = cad.cible ? 'Touche une carte pour la découvrir' : 'Touche le cadeau 🎁';
+    if (!cad.cible) return;
+    const y = cad.boite.position.y + 1.4;                                   // confettis qui jaillissent de la boîte
+    for (const cf of cad.confs) {
+      for (let i = 0; i < cf.n; i++) {
+        cf.pos.set([(Math.random() - 0.5) * 2.4, y, (Math.random() - 0.5) * 2.4], i * 3);
+        cf.vel[i] = [(Math.random() - 0.5) * 6, 5 + Math.random() * 6, (Math.random() - 0.5) * 6];
+      }
+      cf.pts.visible = true; cf.pts.material.opacity = 1;
+    }
+    cad.confVie = 0;
+  }
+
+  function boucleCadeau() {
+    if (!cad || vueCoeur !== 'cadeau') { cadBoucle = false; return; }
+    const now = performance.now() / 1000, dt = Math.min(now - (cad.prec || now), 0.05); cad.prec = now;
+    cad.t += Math.sign(cad.cible - cad.t) * Math.min(Math.abs(cad.cible - cad.t), dt / 1.2);
+    const t = cad.t, e = 1 - Math.pow(1 - t, 3);
+    cad.couvercle.rotation.x = -2.55 * e - 0.1 * Math.sin(t * Math.PI);        // le couvercle se rabat vers l’arrière
+    cad.l2.intensity = 2.6 * e;
+    const fondu = 1 - Math.min(Math.max((t - 0.55) / 0.4, 0), 1);               // le couvercle s’efface une fois rabattu : intérieur et titre bien dégagés
+    cad.lidMats.forEach(m => { m.opacity = fondu; }); cad.couvercle.visible = fondu > 0.01;
+    cad.cam.position.set(0, 3 + 5.5 * e, 16 - 0.7 * e); cad.cam.lookAt(0, -0.2 + 0.1 * e, 0);   // la caméra monte : on regarde dans la boîte
+    cad.cartes.forEach((c, i) => {                                              // les cartes sortent l’une après l’autre
+      const ei = 1 - Math.pow(1 - Math.min(Math.max((t - 0.3 - i * 0.12) / 0.5, 0), 1), 3);
+      c.visible = ei > 0.001; c.position.y = -0.5 + 1.95 * ei;
+    });
+    cad.boite.rotation.y = cad.ry + (cad.reduit ? 0 : Math.sin(now * 0.8) * 0.3 * (1 - e));    // fermée, la boîte se balance doucement
+    cad.boite.position.y = -2 + (cad.reduit ? 0 : 0.07 * Math.sin(now * 2));
+    const a = Math.min(Math.max((t - 0.55) / 0.45, 0), 1);                      // le message apparaît au-dessus de la boîte
+    cad.titre.style.opacity = a; cad.titre.style.transform = `translateY(${14 * (1 - a)}px) scale(${0.9 + 0.1 * a})`;
+    cad.aide.style.opacity = cad.cible ? 0.85 * Math.min(Math.max((t - 0.9) / 0.1, 0), 1) : 0.85 * (1 - Math.min(t * 3, 1));
+    if (cad.confVie < 3.4) {
+      cad.confVie += dt;
+      for (const cf of cad.confs) {
+        for (let i = 0; i < cf.n; i++) {
+          const v = cf.vel[i]; v[1] -= 9 * dt;
+          cf.pos[i * 3] += v[0] * dt; cf.pos[i * 3 + 1] += v[1] * dt; cf.pos[i * 3 + 2] += v[2] * dt;
+        }
+        cf.pts.geometry.attributes.position.needsUpdate = true;
+        cf.pts.material.opacity = Math.max(0, 1 - cad.confVie / 3.4);
+        if (cad.confVie >= 3.4) cf.pts.visible = false;
+      }
+    }
+    cad.renderer.render(cad.scene, cad.cam);
+    requestAnimationFrame(boucleCadeau);
+  }
+
+  function montrerCadeau() {
+    if (!cad) construireCadeau();
+    cad.t = 0; cad.cible = 0; cad.confVie = 99; cad.confs.forEach(cf => { cf.pts.visible = false; });   // la boîte est toujours fermée au départ
+    cad.aide.textContent = 'Touche le cadeau 🎁';
+    if (!cadBoucle) { cadBoucle = true; boucleCadeau(); }
+  }
+
+  document.querySelectorAll('.bascule button').forEach(b => b.addEventListener('click', () => {
+    const v = b.dataset.v; if (v === vueCoeur) return;
+    vueCoeur = v;
+    document.querySelectorAll('.bascule button').forEach(x => x.classList.toggle('actif', x === b));
+    ['mot', 'langues', 'cadeau'].forEach(id => document.getElementById(id).classList.toggle('cache', v !== id));
+    document.getElementById('fond').classList.toggle('on', v === 'cadeau');
+    document.getElementById('cadeauUi').classList.toggle('cache', v !== 'cadeau');
+    document.body.classList.toggle('violet', v === 'cadeau');
+    if (v === 'langues') montrerLangues();
+    if (v === 'cadeau') montrerCadeau();
+  }));
+
   function redim() {
-    if (!scene3d) return;
-    const w = Math.min(window.innerWidth * 0.92, 520);
-    scene3d.renderer.setSize(w, w);
+    if (scene3d) { const w = Math.min(window.innerWidth * 0.92, window.innerHeight * 0.5, 520); scene3d.renderer.setSize(w, w); }
+    if (lg) { lg = null; if (vueCoeur === 'langues') montrerLangues(); }
+    if (cad) { const w = Math.min(window.innerWidth * 0.92, window.innerHeight * 0.5, 520); cad.renderer.setSize(w, w); }
   }
 
   window.addEventListener('resize', () => { redim(); });
@@ -239,6 +591,7 @@
   document.getElementById('son').addEventListener('click', () => {
     musique.paused ? musique.play() : musique.pause();
   });
+
 </script>
 </body>
 </html>
